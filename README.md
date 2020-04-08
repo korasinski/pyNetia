@@ -7,6 +7,7 @@
 
 # pyNetia
 Python wrapper for communication with the Netia Player TV box using HTTP API.  
-Currently supported device: _Netgem N7800 (Netia Player 2.0)_:
+
+Currently supported device: _Netgem N7800 (Netia Player 2.0)_
 
 Built for the custom component addon in **Home Assistant** - [ha-netia](https://github.com/korasinski/ha-netia).
