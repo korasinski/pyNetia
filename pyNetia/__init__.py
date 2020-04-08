@@ -6,6 +6,8 @@ KudlatyWORKSHOP.com
 Changelog:
 - v.0.0.1 initial release
 - v.0.0.2 app support, play media, select source
+- v.0.1.0 homekit fix, class rename, netia_req_json rename, added SUPPORTED_APPS list, get_key refactor
+- v.0.1.1 updated SUPPORTED_APPS list
 
 """
 
@@ -29,27 +31,32 @@ URL_CHANNEL_IMAGE = "EPG/Programs/getImage?channelId="
 URL_APPLICATION_LIST = "Applications/State/get"
 URL_APPLICATION_OPEN = "Applications/Lifecycle/open?appId="
 
-# URL_NETIA_EPG_APPS_SETTINGS = "http://epg.dms.netia.pl/xmltv/lib/pilot/netiaPadAppsSettings.json"
-# URL_NETIA_EPG_APPS_PROMO = "http://epg.dms.netia.pl/xmltv/lib/pilot/netiaPadPromo.json"
-
 URL_NETIA_EPG_LOGO = "http://epg.dms.netia.pl/xmltv/logo/black/"
 
-AVALIABLE_KEYS = [
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'on_off', 'mute', 'volume_up', 'volume_down', 'channel_up',
-    'channel_down', 'back', 'fullscreen', 'menu', 'up', 'down', 'left', 'right', 'ok', 'play', 'stop', 'prev', 'next',
-    'rec', 'guide', 'delete', 'red', 'green', 'yellow', 'blue'
-]
+AVAILABLE_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'on_off', 'mute', 'volume_up', 'volume_down',
+                  'channel_up', 'channel_down', 'back', 'fullscreen', 'menu', 'up', 'down', 'left', 'right', 'ok',
+                  'play', 'stop', 'prev', 'next', 'rec', 'guide', 'delete', 'red', 'green', 'yellow', 'blue'
+                  ]
+
+SUPPORTED_APPS = ['hbogo', 'kinoplex', 'ninateka', 'ipla', 'abcvod', 'premiumplus', 'npvr', 'pvrchannel' 'goon',
+                  'netiatvshop', 'psp', 'filmbox', 'tvnplayer', 'netiacloud', 'tubafm', 'tvnmeteo', 'tvpsport',
+                  'pinkvision', 'erowizja', 'ksw', 'youtube',
+                  'usb.launcher', 'settings', 'mediacenter', 'epg', 'netia', 'tv',
+                  ]
+
 _LOGGER = logging.getLogger(__name__)
 
-_VERSION_ = "0.0.2"
+_VERSION = "0.1.1"
 
 
-class Netia(object):
+class PyNetia(object):
+
     def __init__(self, host, port):  # mac address is optional but necessary if we want to turn on the TV
         """Initialize the Netia Player class."""
         self._host = host
         self._port = port
-        self._commands = AVALIABLE_KEYS
+        self._available_keys = AVAILABLE_KEYS
+        self._supported_apps = SUPPORTED_APPS
         self._application_list = {}
 
     def netia_set(self, url, content, log_errors=True):
@@ -76,7 +83,7 @@ class Netia(object):
                 return_response = response.content
                 return return_response
 
-    def netia_req_json(self, url, log_errors=True):
+    def netia_req(self, url, log_errors=True):
         """ Send request via HTTP json to Netia Player."""
         try:
             response = requests.get('http://' + self._host + ':' + self._port + '/' + url,
@@ -106,21 +113,22 @@ class Netia(object):
 
     def send_command(self, command):
         """Sends a command to the TV."""
-        self.netia_set(URL_KEY, self.get_command_code(command))
+        self.netia_set(URL_KEY, self.get_key(command))
 
     def get_app_list(self):
         """Get list of apps from device."""
         return_value = []
-        resp = self.netia_req_json(URL_APPLICATION_LIST, True)
+        resp = self.netia_req(URL_APPLICATION_LIST, True)
         if resp is not None:
             for i in range(len(resp)):
                 app = resp[i]
-                if "promo_channel" not in app.get('id'):
+                if app.get('id') in SUPPORTED_APPS:
                     if app.get('id') == "youtube":
                         app['name'] = "YouTube"
                     if app.get('name') is None:
                         app['name'] = "Unknown app"
                     return_value.append(app)
+        _LOGGER.debug(return_value)
         return return_value
 
     def get_app_info(self):
@@ -173,7 +181,7 @@ class Netia(object):
     def get_channel_info(self):
         """Get information on program that is shown on TV."""
         return_value = {}
-        channel = self.netia_req_json(URL_CHANNEL_CURRENT, True)
+        channel = self.netia_req(URL_CHANNEL_CURRENT, True)
         if channel is not None:
             return_value['id'] = channel.get('id')
             return_value['media_channel'] = channel.get('zap')
@@ -191,7 +199,7 @@ class Netia(object):
         details_url = URL_CHANNEL_DETAILS + str(requests.utils.quote(channel_id)) + "&startTime=" + str(
             timestamp) + "&endTime=" + str(
             timestamp)
-        channel_details = self.netia_req_json(details_url, True)
+        channel_details = self.netia_req(details_url, True)
         if channel_details is not None:
             channel_details = channel_details[0]
             return_value['media_channel'] = channel_details.get('channelZap')
@@ -209,28 +217,28 @@ class Netia(object):
         return return_value
 
     def get_standby_status(self):
-        """Get standby status: on, off"""
+        """Get standby status: on, off."""
         return_value = 'on'  # by default the Netia Player is in standby mode
         try:
-            resp = self.netia_req_json(URL_STATE, False)
+            resp = self.netia_req(URL_STATE, False)
             if resp.get('standby') is False:
                 return_value = 'off'
             else:
                 return_value = 'on'
-        except:  # pylint: disable=broad-except
+        except:
             pass
         return return_value
 
-    def get_command_code(self, command_name):
-        """Check if command is supported."""
-        for command_data in self._commands:
-            if command_data == command_name:
-                return command_data
+    def get_key(self, key_name):
+        """Check if key is available."""
+        for key in self._available_keys:
+            if key == key_name:
+                return key
         return None
 
     def get_volume_info(self):
         """Get volume info."""
-        resp = self.netia_req_json(URL_VOLUME, True)
+        resp = self.netia_req(URL_VOLUME, True)
         if not resp.get('error'):
             result = resp
             return result
@@ -239,10 +247,13 @@ class Netia(object):
         return None
 
     def available_keys(self):
-        return self._commands
+        return self._available_keys
 
     def application_list(self):
         return self._application_list
+
+    def supported_apps(self):
+        return self._supported_apps
 
     def open_app(self, app):
         """Play content by URI."""
@@ -250,40 +261,40 @@ class Netia(object):
 
     def volume_up(self):
         """Volume up the media player."""
-        self.netia_set(URL_KEY, self.get_command_code('volume_up'))
+        self.netia_set(URL_KEY, self.get_key('volume_up'))
 
     def volume_down(self):
         """Volume down media player."""
-        self.netia_set(URL_KEY, self.get_command_code('volume_down'))
+        self.netia_set(URL_KEY, self.get_key('volume_down'))
 
     def mute_volume(self):
         """Send mute command."""
-        self.netia_set(URL_KEY, self.get_command_code('mute'))
+        self.netia_set(URL_KEY, self.get_key('mute'))
 
     def turn_on(self):
         """Turn the media player on."""
-        self.netia_set(URL_KEY, self.get_command_code('on_off'))
+        self.netia_set(URL_KEY, self.get_key('on_off'))
 
     def turn_off(self):
         """Turn the media player off."""
-        self.netia_set(URL_KEY, self.get_command_code('on_off'))
+        self.netia_set(URL_KEY, self.get_key('on_off'))
 
     def media_play(self):
         """Send play command."""
-        self.netia_set(URL_KEY, self.get_command_code('play'))
+        self.netia_set(URL_KEY, self.get_key('play'))
 
     def media_pause(self):
         """Send media pause command to media player."""
-        self.netia_set(URL_KEY, self.get_command_code('pause'))
+        self.netia_set(URL_KEY, self.get_key('pause'))
 
     def media_stop(self):
         """Send media pause command to media player."""
-        self.netia_set(URL_KEY, self.get_command_code('stop'))
+        self.netia_set(URL_KEY, self.get_key('stop'))
 
     def media_next_track(self):
         """Send next track command."""
-        self.netia_set(URL_KEY, self.get_command_code('channel_up'))
+        self.netia_set(URL_KEY, self.get_key('channel_up'))
 
     def media_previous_track(self):
         """Send the previous track command."""
-        self.netia_set(URL_KEY, self.get_command_code('channel_down'))
+        self.netia_set(URL_KEY, self.get_key('channel_down'))
