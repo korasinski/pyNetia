@@ -8,6 +8,7 @@ Changelog:
 - v.0.0.2 app support, play media, select source
 - v.0.1.0 homekit fix, class rename, netia_req_json rename, added SUPPORTED_APPS list, get_key refactor
 - v.0.1.1 updated SUPPORTED_APPS list
+- v.0.1.2 updated SUPPORTED_APPS list, code reformated
 
 """
 
@@ -33,25 +34,78 @@ URL_APPLICATION_OPEN = "Applications/Lifecycle/open?appId="
 
 URL_NETIA_EPG_LOGO = "http://epg.dms.netia.pl/xmltv/logo/black/"
 
-AVAILABLE_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'on_off', 'mute', 'volume_up', 'volume_down',
-                  'channel_up', 'channel_down', 'back', 'fullscreen', 'menu', 'up', 'down', 'left', 'right', 'ok',
-                  'play', 'stop', 'prev', 'next', 'rec', 'guide', 'delete', 'red', 'green', 'yellow', 'blue'
-                  ]
+AVAILABLE_KEYS = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "0",
+    "on_off",
+    "mute",
+    "volume_up",
+    "volume_down",
+    "channel_up",
+    "channel_down",
+    "back",
+    "fullscreen",
+    "menu",
+    "up",
+    "down",
+    "left",
+    "right",
+    "ok",
+    "play",
+    "stop",
+    "prev",
+    "next",
+    "rec",
+    "guide",
+    "delete",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+]
 
-SUPPORTED_APPS = ['hbogo', 'kinoplex', 'ninateka', 'ipla', 'abcvod', 'premiumplus', 'npvr', 'pvrchannel' 'goon',
-                  'netiatvshop', 'psp', 'filmbox', 'tvnplayer', 'netiacloud', 'tubafm', 'tvnmeteo', 'tvpsport',
-                  'pinkvision', 'erowizja', 'ksw', 'youtube',
-                  'usb.launcher', 'settings', 'mediacenter', 'epg', 'netia', 'tv',
-                  ]
+SUPPORTED_APPS = [
+    "tv",
+    "epg",
+    "settings",
+    "hbogo",
+    "kinoplex",
+    "ninateka",
+    "ipla",
+    "abcvod",
+    "premiumplus",
+    "npvr",
+    "goon",
+    "netiatvshop",
+    "psp",
+    "filmbox",
+    "tvnplayer",
+    "netiacloud",
+    "tubafm",
+    "tvnmeteo",
+    "tvpsport",
+    "pinkvision",
+    "erowizja",
+    "ksw",
+    "youtube",
+    "mediacenter",
+]
 
 _LOGGER = logging.getLogger(__name__)
 
-_VERSION = "0.1.1"
+_VERSION = "0.1.2"
 
 
 class PyNetia(object):
-
-    def __init__(self, host, port):  # mac address is optional but necessary if we want to turn on the TV
+    def __init__(self, host, port):
         """Initialize the Netia Player class."""
         self._host = host
         self._port = port
@@ -65,17 +119,16 @@ class PyNetia(object):
             return False
         else:
             try:
-                response = requests.post('http://' + self._host + ':' + self._port + '/' + url + content,
-                                         timeout=TIMEOUT_INTERNAL)
-
+                response = requests.post(
+                    "http://" + self._host + ":" + self._port + "/" + url + content,
+                    timeout=TIMEOUT_INTERNAL,
+                )
             except requests.exceptions.HTTPError as exception_instance:
                 if log_errors:
                     _LOGGER.error("HTTPError: " + str(exception_instance))
-
             except requests.exceptions.Timeout as exception_instance:
                 if log_errors:
                     _LOGGER.error("Timeout occurred: " + str(exception_instance))
-
             except Exception as exception_instance:  # pylint: disable=broad-except
                 if log_errors:
                     _LOGGER.error("Exception: " + str(exception_instance))
@@ -86,27 +139,26 @@ class PyNetia(object):
     def netia_req(self, url, log_errors=True):
         """ Send request via HTTP json to Netia Player."""
         try:
-            response = requests.get('http://' + self._host + ':' + self._port + '/' + url,
-                                    timeout=TIMEOUT_INTERNAL)
-
+            response = requests.get(
+                "http://" + self._host + ":" + self._port + "/" + url,
+                timeout=TIMEOUT_INTERNAL,
+            )
         except requests.exceptions.HTTPError as exception_instance:
             if log_errors:
                 _LOGGER.error("HTTPError: " + str(exception_instance))
-
         except requests.exceptions.Timeout as exception_instance:
             if log_errors:
                 _LOGGER.error("Timeout occurred: " + str(exception_instance))
-
         except Exception as exception_instance:  # pylint: disable=broad-except
             if log_errors:
                 _LOGGER.error("Exception: " + str(exception_instance))
         else:
             if response.status_code == 200:
-                response = json.loads(response.content.decode('utf-8'))
+                response = json.loads(response.content.decode("utf-8"))
                 if response is None and log_errors:
                     _LOGGER.error(
-                        "Invalid response: %s\n  request path: %s" % (
-                            response, url))
+                        "Invalid response: %s\n  request path: %s" % (response, url)
+                    )
             else:
                 response = None
             return response
@@ -122,11 +174,11 @@ class PyNetia(object):
         if resp is not None:
             for i in range(len(resp)):
                 app = resp[i]
-                if app.get('id') in SUPPORTED_APPS:
-                    if app.get('id') == "youtube":
-                        app['name'] = "YouTube"
-                    if app.get('name') is None:
-                        app['name'] = "Unknown app"
+                if app.get("id") in SUPPORTED_APPS:
+                    if app.get("id") == "youtube":
+                        app["name"] = "YouTube"
+                    if app.get("name") is None:
+                        app["name"] = "Unknown app"
                     return_value.append(app)
         _LOGGER.debug(return_value)
         return return_value
@@ -138,39 +190,36 @@ class PyNetia(object):
         if resp is not None:
             self._application_list = resp
             for app in resp:
-                if app.get('current') is True:
-                    if app.get('id') in ['tv', 'settings', 'epg']:
-                        return_value['id'] = 'tv'
-                        return_value['name'] = 'TV'
-                        return_value['image'] = None
+                if app.get("current") is True:
+                    if app.get("id") in ["tv", "settings", "epg"]:
+                        return_value["id"] = "tv"
+                        return_value["name"] = "TV"
+                        return_value["image"] = None
                     else:
-                        return_value['id'] = app.get('id')
-                        return_value['name'] = app.get('name')
-                        return_value['image'] = self.get_app_picture(app.get('id'))
+                        return_value["id"] = app.get("id")
+                        return_value["name"] = app.get("name")
+                        return_value["image"] = self.get_app_picture(app.get("id"))
             if len(return_value) is 0:
-                return_value['id'] = "tv"
-                return_value['name'] = "TV"
-                return_value['image'] = None
+                return_value["id"] = "tv"
+                return_value["name"] = "TV"
+                return_value["image"] = None
 
         return return_value
 
     def get_app_picture(self, app, log_errors=True):
         """Get application picture from Netia server."""
-        url = URL_NETIA_EPG_LOGO + app + '_290x172px.png'
+        url = URL_NETIA_EPG_LOGO + app + "_290x172px.png"
         if app is None:
             return False
         else:
             try:
                 response = requests.post(url, timeout=TIMEOUT_EXTERNAL)
-
             except requests.exceptions.HTTPError as exception_instance:
                 if log_errors:
                     _LOGGER.error("HTTPError: " + str(exception_instance))
-
             except requests.exceptions.Timeout as exception_instance:
                 if log_errors:
                     _LOGGER.error("Timeout occurred: " + str(exception_instance))
-
             except Exception as exception_instance:  # pylint: disable=broad-except
                 if log_errors:
                     _LOGGER.error("Exception: " + str(exception_instance))
@@ -183,11 +232,18 @@ class PyNetia(object):
         return_value = {}
         channel = self.netia_req(URL_CHANNEL_CURRENT, True)
         if channel is not None:
-            return_value['id'] = channel.get('id')
-            return_value['media_channel'] = channel.get('zap')
-            return_value['channel_name'] = channel.get('name')
-            return_value['image'] = 'http://' + self._host + ':' + self._port + "/" + URL_CHANNEL_IMAGE + str(
-                requests.utils.quote(channel.get('id')))
+            return_value["id"] = channel.get("id")
+            return_value["media_channel"] = channel.get("zap")
+            return_value["channel_name"] = channel.get("name")
+            return_value["image"] = (
+                "http://"
+                + self._host
+                + ":"
+                + self._port
+                + "/"
+                + URL_CHANNEL_IMAGE
+                + str(requests.utils.quote(channel.get("id")))
+            )
         else:
             return_value = None
         return return_value
@@ -196,35 +252,46 @@ class PyNetia(object):
         """Get information on program that is shown on TV."""
         return_value = {}
         timestamp = int(time.time())
-        details_url = URL_CHANNEL_DETAILS + str(requests.utils.quote(channel_id)) + "&startTime=" + str(
-            timestamp) + "&endTime=" + str(
-            timestamp)
+        details_url = (
+            URL_CHANNEL_DETAILS
+            + str(requests.utils.quote(channel_id))
+            + "&startTime="
+            + str(timestamp)
+            + "&endTime="
+            + str(timestamp)
+        )
         channel_details = self.netia_req(details_url, True)
         if channel_details is not None:
             channel_details = channel_details[0]
-            return_value['media_channel'] = channel_details.get('channelZap')
-            return_value['channel_name'] = channel_details.get('channelName')
-            return_value['image'] = 'http://' + self._host + ':' + self._port + str(channel_details.get('image'))
-            return_value['program_name'] = channel_details.get('name')
-            return_value['program_media_type'] = channel_details.get('subcategory')
-            return_value['media_episode'] = channel_details.get('episodeInfo')
-            return_value['sound_mode'] = channel_details.get('audio')
-            return_value['duration'] = channel_details.get('duration')
-            return_value['start_time'] = channel_details.get('startTime')
-            return_value['end_time'] = channel_details.get('endTime')
+            return_value["media_channel"] = channel_details.get("channelZap")
+            return_value["channel_name"] = channel_details.get("channelName")
+            return_value["image"] = (
+                "http://"
+                + self._host
+                + ":"
+                + self._port
+                + str(channel_details.get("image"))
+            )
+            return_value["program_name"] = channel_details.get("name")
+            return_value["program_media_type"] = channel_details.get("subcategory")
+            return_value["media_episode"] = channel_details.get("episodeInfo")
+            return_value["sound_mode"] = channel_details.get("audio")
+            return_value["duration"] = channel_details.get("duration")
+            return_value["start_time"] = channel_details.get("startTime")
+            return_value["end_time"] = channel_details.get("endTime")
         else:
             return_value = None
         return return_value
 
     def get_standby_status(self):
         """Get standby status: on, off."""
-        return_value = 'on'  # by default the Netia Player is in standby mode
+        return_value = "on"  # by default the Netia Player is in standby mode
         try:
             resp = self.netia_req(URL_STATE, False)
-            if resp.get('standby') is False:
-                return_value = 'off'
+            if resp.get("standby") is False:
+                return_value = "off"
             else:
-                return_value = 'on'
+                return_value = "on"
         except:
             pass
         return return_value
@@ -239,7 +306,7 @@ class PyNetia(object):
     def get_volume_info(self):
         """Get volume info."""
         resp = self.netia_req(URL_VOLUME, True)
-        if not resp.get('error'):
+        if not resp.get("error"):
             result = resp
             return result
         else:
@@ -261,40 +328,40 @@ class PyNetia(object):
 
     def volume_up(self):
         """Volume up the media player."""
-        self.netia_set(URL_KEY, self.get_key('volume_up'))
+        self.netia_set(URL_KEY, self.get_key("volume_up"))
 
     def volume_down(self):
         """Volume down media player."""
-        self.netia_set(URL_KEY, self.get_key('volume_down'))
+        self.netia_set(URL_KEY, self.get_key("volume_down"))
 
     def mute_volume(self):
         """Send mute command."""
-        self.netia_set(URL_KEY, self.get_key('mute'))
+        self.netia_set(URL_KEY, self.get_key("mute"))
 
     def turn_on(self):
         """Turn the media player on."""
-        self.netia_set(URL_KEY, self.get_key('on_off'))
+        self.netia_set(URL_KEY, self.get_key("on_off"))
 
     def turn_off(self):
         """Turn the media player off."""
-        self.netia_set(URL_KEY, self.get_key('on_off'))
+        self.netia_set(URL_KEY, self.get_key("on_off"))
 
     def media_play(self):
         """Send play command."""
-        self.netia_set(URL_KEY, self.get_key('play'))
+        self.netia_set(URL_KEY, self.get_key("play"))
 
     def media_pause(self):
         """Send media pause command to media player."""
-        self.netia_set(URL_KEY, self.get_key('pause'))
+        self.netia_set(URL_KEY, self.get_key("pause"))
 
     def media_stop(self):
         """Send media pause command to media player."""
-        self.netia_set(URL_KEY, self.get_key('stop'))
+        self.netia_set(URL_KEY, self.get_key("stop"))
 
     def media_next_track(self):
         """Send next track command."""
-        self.netia_set(URL_KEY, self.get_key('channel_up'))
+        self.netia_set(URL_KEY, self.get_key("channel_up"))
 
     def media_previous_track(self):
         """Send the previous track command."""
-        self.netia_set(URL_KEY, self.get_key('channel_down'))
+        self.netia_set(URL_KEY, self.get_key("channel_down"))
